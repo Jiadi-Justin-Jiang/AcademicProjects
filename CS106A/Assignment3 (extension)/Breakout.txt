@@ -1,0 +1,179 @@
+/*
+ * File: Breakout.java
+ * -------------------
+ * Name:
+ * Section Leader:
+ * 
+ * This file will eventually implement the game of Breakout.
+ */
+
+import acm.graphics.*;
+import acm.program.*;
+import acm.util.*;
+import java.applet.*;
+import java.awt.*;
+import java.awt.event.*;
+
+public class Breakout extends GraphicsProgram {
+
+/* Width and height of application window in pixels */
+	public static final int APPLICATION_WIDTH = 400;
+	public static final int APPLICATION_HEIGHT = 600;
+
+/* Dimensions of game board (usually the same) */
+	private static final int WIDTH = APPLICATION_WIDTH;
+	private static final int HEIGHT = APPLICATION_HEIGHT;
+
+/* Dimensions of the paddle */
+	private static final int PADDLE_WIDTH = 60;
+	private static final int PADDLE_HEIGHT = 10;
+
+/* Offset of the paddle up from the bottom */
+	private static final int PADDLE_Y_OFFSET = 30;
+
+/* Number of bricks per row */
+	private static final int NBRICKS_PER_ROW = 10;
+
+/* Number of rows of bricks */
+	private static final int NBRICK_ROWS = 10;
+
+/* Separation between bricks */
+	private static final int BRICK_SEP = 4;
+
+/* Width of a brick */
+	private static final int BRICK_WIDTH =
+	  (WIDTH - (NBRICKS_PER_ROW - 1) * BRICK_SEP) / NBRICKS_PER_ROW;
+
+/* Height of a brick */
+	private static final int BRICK_HEIGHT = 8;
+
+/* Radius of the ball in pixels */
+	private static final int BALL_RADIUS = 10;
+
+/* Offset of the top brick row from the top */
+	private static final int BRICK_Y_OFFSET = 70;
+
+/* Number of turns */
+	private static final int NTURNS = 3;
+	
+/* Maximum and Minimum velocities in x direction */	
+	private static final double MIN_X_VELOCITY = 1.5;
+	private static final double MAX_X_VELOCITY = 4.5;
+	private static final double MAX_Y_VELOCITY = 4.5;
+	
+/* Pause time for ball movement*/
+	private static final int PAUSE_TIME = 10;
+
+/* Add bounce clip */	
+	AudioClip bounceClip = MediaTools.loadAudioClip("bounce.au");
+	
+/* Initializes the the mouse listeners */
+	public void init() {
+		addMouseListeners();
+	}
+	
+/* Runs the Breakout program */
+	public void run() {
+		// You fill this in, along with any subsidiary methods
+		setUpBricks();
+		createBall();
+	}
+
+/* Set up the bricks */
+	private void setUpBricks(){
+		for (int i=0;i<NBRICK_ROWS;i++){
+			for (int j=0;j<NBRICKS_PER_ROW;j++){
+				GRect rec = new GRect(j*(BRICK_WIDTH+BRICK_SEP),BRICK_Y_OFFSET+i*(BRICK_HEIGHT+BRICK_SEP),BRICK_WIDTH,BRICK_HEIGHT);
+				rec.setFilled(true);
+				fillColor(i,rec);
+				add(rec);
+			}
+		}
+	}
+	
+/* Fill color for the bricks */
+	private void fillColor(int i, GRect rec){
+		if (i%10==0 || i%10==1)
+			rec.setFillColor(Color.RED);
+		else if (i%10==2 || i%10==3)
+			rec.setFillColor(Color.ORANGE);
+		else if (i%10==4 || i%10==5)
+			rec.setFillColor(Color.YELLOW);
+		else if (i%10==6 || i%10==7)
+			rec.setFillColor(Color.GREEN);
+		else if (i%10==8 || i%10==9)
+			rec.setFillColor(Color.CYAN);
+	}
+
+		
+/* Call on MouseEvent to move the paddle */
+	public void mouseMoved (MouseEvent e){
+		if ((e.getX()-PADDLE_WIDTH/2)>=0 && (e.getX()+PADDLE_WIDTH/2)<getWidth()){
+			paddle.setLocation(e.getX()-PADDLE_WIDTH/2,getHeight() - PADDLE_Y_OFFSET - PADDLE_HEIGHT);
+		}
+		paddle.setFilled(true);
+		paddle.setFillColor(Color.BLACK);
+		add(paddle);
+	}
+	
+/* Create private instance variable: paddle */
+	private GRect paddle = new GRect(PADDLE_WIDTH,PADDLE_HEIGHT);
+	
+/* Create a ball and get it bounce off the walls */
+	private void createBall(){
+		vx = rgen.nextDouble(MIN_X_VELOCITY, MAX_X_VELOCITY);
+		vy = MAX_Y_VELOCITY;
+		if (rgen.nextBoolean()) vx = -vx;
+		GOval Ball = new GOval(getWidth()/2-BALL_RADIUS,getHeight()/2-BALL_RADIUS,BALL_RADIUS,BALL_RADIUS);
+		Ball.setFilled(true);
+		Ball.setFillColor(Color.BLACK);
+		add(Ball);
+		waitForClick();
+		while(true){
+			if(Ball.getX()<0 || (Ball.getX()+2*BALL_RADIUS)>getWidth())
+				vx = -vx;
+			if(Ball.getY()<0)
+				vy = -vy;
+			if((Ball.getY()+2*BALL_RADIUS)>getHeight()){
+				remove(Ball);
+				break;
+			}
+				
+			GObject collider = getCollidingObject(Ball.getX(),Ball.getY(),BALL_RADIUS);
+			if(collider!=null){
+				vy = -vy;
+				if(collider!=paddle){
+					remove(collider);
+					bounceClip.play();
+					BRICKS_COUNT--;
+				}
+			}
+			if(BRICKS_COUNT==0){
+				remove(Ball);
+				break;
+			}
+			Ball.move(vx, vy);
+			pause(PAUSE_TIME);
+		}
+	}
+
+/* Total number of bricks*/
+	private int BRICKS_COUNT = NBRICKS_PER_ROW*NBRICK_ROWS;
+
+/* Create private instance variables */
+	private RandomGenerator rgen = RandomGenerator.getInstance();
+	private double vx,vy;
+	
+/* To get colliding object */
+	private GObject getCollidingObject(double x, double y, int r){
+		for(int i=0;i<2;i++){
+			for(int j=0;j<2;j++){
+				GObject obj = getElementAt(x+i*r,y+j*r);
+				if(obj!=null)
+					return obj;
+			}
+		}
+		return null;
+	}
+}
+
